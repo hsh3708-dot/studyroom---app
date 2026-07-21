@@ -6,19 +6,17 @@ import requests
 # ⚠️ 본인의 구글 앱스 스크립트 웹 앱 URL을 입력하세요!
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyNRaRIwOmIKOOZh6-2aLIya4ZjQUlinv8lXkSyuUMn9hhcxlQ0tTOwAm62JH2TvVoDWw/exec"
 
-# 페이지 세팅
 st.set_page_config(
-    page_title="2026 자기주도학습실 좌석 관리",
+    page_title="2026 자기주도학습실 좌석 배치도",
     page_icon="📚",
     layout="wide"
 )
 
-st.title("📚 2026학년도 자기주도학습실 실시간 좌석 배치도")
-st.caption("입구 / 정수기 / 창문 위치를 확인하고 원하시는 좌석을 배치도에서 직접 선택해주세요.")
+st.title("📚 2026학년도 자기주도학습실 실시간 좌석 현황")
+st.caption("실제 자습실 배치도와 동일한 화면입니다. 원하시는 좌석 버튼을 클릭하여 입/퇴실을 진행해 주세요.")
 
 # --- 세션 상태 초기화 ---
 if 'seats' not in st.session_state:
-    # 1~71 정독실 + 스터디테이블 (1-1~1-4, 2-1~2-4, 3-1~3-4, 4-1~4-4)
     jeongdok = [str(i) for i in range(1, 72)]
     study = [f"{t}-{i}" for t in range(1, 5) for i in range(1, 5)]
     all_seats = jeongdok + study
@@ -27,26 +25,37 @@ if 'seats' not in st.session_state:
 if 'selected_seat' not in st.session_state:
     st.session_state.selected_seat = None
 
-# --- 좌석 클릭 함수 ---
 def select_seat(seat_id):
     st.session_state.selected_seat = seat_id
 
-# --- 상단: 선택한 좌석 입/퇴실 처리 키오스크 ---
+def render_seat(seat_id):
+    info = st.session_state.seats.get(seat_id, {"status": "빈자리", "user": ""})
+    is_used = (info["status"] == "사용중")
+    
+    # 좌석 유형 구분 (스터디 vs 정독실)
+    display_id = f"S{seat_id}" if "-" in seat_id else f"{seat_id}번"
+    label = f"{display_id}\n🔴{info['user']}" if is_used else f"{display_id}\n🟢가능"
+    
+    if st.button(label, key=f"btn_{seat_id}", use_container_width=True):
+        select_seat(seat_id)
+        st.rerun()
+
+# --- 상단: 입/퇴실 등록 키오스크 ---
 st.markdown("---")
 if st.session_state.selected_seat:
     s_id = st.session_state.selected_seat
     s_info = st.session_state.seats[s_id]
     
-    st.info(f"📍 **현재 선택한 좌석: [{s_id}]번** | 상태: **{s_info['status']}** " + (f"({s_info['user']})" if s_info['user'] else ""))
+    st.info(f"📍 **선택된 좌석: [{s_id}]번** | 상태: **{s_info['status']}** " + (f"({s_info['user']})" if s_info['user'] else ""))
     
     with st.form("check_in_out_form"):
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             student_name = st.text_input("학번 및 이름 입력", value=s_info['user'] if s_info['status'] == "사용중" else "", placeholder="예: 20101 홍길동")
         with col2:
-            in_btn = st.form_submit_button("🟢 입실 처리", use_container_width=True)
+            in_btn = st.form_submit_button("🟢 입실하기", use_container_width=True)
         with col3:
-            out_btn = st.form_submit_button("🔴 퇴실 처리", use_container_width=True)
+            out_btn = st.form_submit_button("🔴 퇴실하기", use_container_width=True)
 
         if in_btn:
             if not student_name.strip():
@@ -56,7 +65,6 @@ if st.session_state.selected_seat:
             else:
                 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 st.session_state.seats[s_id] = {"status": "사용중", "user": student_name, "time": now_str}
-                # 구글 시트 전송
                 try:
                     payload = {"timestamp": now_str, "student_id": student_name, "seat_no": s_id, "status": "입실"}
                     requests.post(WEB_APP_URL, json=payload)
@@ -72,7 +80,6 @@ if st.session_state.selected_seat:
             else:
                 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 st.session_state.seats[s_id] = {"status": "빈자리", "user": "", "time": now_str}
-                # 구글 시트 전송
                 try:
                     payload = {"timestamp": now_str, "student_id": student_name, "seat_no": s_id, "status": "퇴실"}
                     requests.post(WEB_APP_URL, json=payload)
@@ -82,87 +89,92 @@ if st.session_state.selected_seat:
                 st.session_state.selected_seat = None
                 st.rerun()
 else:
-    st.warning("👉 아래 **배치도에서 원하시는 좌석 버튼**을 클릭하면 입실/퇴실을 진행할 수 있습니다.")
+    st.warning("👉 아래 **배치도에서 원하시는 좌석 버튼**을 클릭하면 입/퇴실을 할 수 있습니다.")
 
 st.markdown("---")
 
-# Helper 함수: 좌석 버튼 그리기
-def render_seat_button(seat_id):
-    info = st.session_state.seats.get(seat_id, {"status": "빈자리", "user": ""})
-    is_used = (info["status"] == "사용중")
-    label = f"{seat_id}\n(🔴{info['user']})" if is_used else f"{seat_id}\n(🟢가능)"
-    
-    # 스티커/버튼 형태
-    if st.button(label, key=f"btn_{seat_id}", use_container_width=True):
-        select_seat(seat_id)
-        st.rerun()
+# --- REAL 배치도 시각화 (PDF 1:1 구현) ---
 
-# --- 자습실 배치도 시각화 ---
-
-# 1. 입구 및 안내 구역
-col_left_top, col_right_top = st.columns([1, 4])
-with col_left_top:
-    st.success("🚪 **출입문 / 입구**")
+# 1. 자습실 입구 및 상단 시설
+top_c1, top_c2, top_c3 = st.columns([2, 5, 2])
+with top_c1:
+    st.error("🚪 **출입문 / 입구**")
     st.info("🚰 **정수기 / 감독석**")
-with col_right_top:
-    st.write("🚶‍♂️ **메인 통로 / 엘리베이터 방향**")
+with top_c2:
+    st.markdown("### 🚶‍♂️ 메인 통로 (엘리베이터 방향)")
+with top_c3:
+    st.error("🚪 **출입문**")
 
 st.markdown("---")
 
-# 2. 메인 좌석 구역 (배치도 레이아웃)
-st.subheader("📍 자습실 전체 좌석 배치도")
+# 2. 본관 배치 메인 그리드 (5개 세로 구역)
+# [좌측 1~23] [중앙 24~43] [스터디테이블] [우측 44~71]
+c_left, c_mid_1, c_study, c_mid_2 = st.columns([2, 2, 3, 3])
 
-col_a, col_b, col_c, col_d = st.columns([2, 2, 3, 3])
-
-with col_a:
-    st.markdown("#### 🟦 서측 라인 (1~23)")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.caption("남학생 구역")
+# --- [좌측 구역: 1~23번 (남/여 구역)] ---
+with c_left:
+    st.markdown("#### 🟦 서측 구역 (1~23)")
+    l_c1, l_c2 = st.columns(2)
+    with l_c1:
+        st.caption("남학생")
         for i in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
-            render_seat_button(str(i))
-    with c2:
-        st.caption("여학생 구역")
+            render_seat(str(i))
+    with l_c2:
+        st.caption("여학생")
         for i in [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]:
-            render_seat_button(str(i))
+            render_seat(str(i))
 
-with col_b:
-    st.markdown("#### 🟩 중앙 블록 A (24~43)")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.caption("24~33번")
+# --- [중앙 구역 A: 24~43번] ---
+with c_mid_1:
+    st.markdown("#### 🟩 중앙 지정석 (24~43)")
+    m1_c1, m1_c2 = st.columns(2)
+    with m1_c1:
+        st.caption("24~33번 라인")
         for i in range(24, 34):
-            render_seat_button(str(i))
-    with c2:
-        st.caption("34~43번")
+            render_seat(str(i))
+    with m1_c2:
+        st.caption("34~43번 라인")
         for i in range(34, 44):
-            render_seat_button(str(i))
+            render_seat(str(i))
 
-with col_c:
+# --- [중앙 스터디 테이블 16석: 1-1~4-4] ---
+with c_study:
     st.markdown("#### ✏️ 스터디 테이블 (16석)")
-    st.caption("자유 자율학습석 구역")
-    s_col1, s_col2 = st.columns(2)
-    with s_col1:
-        st.write("**테이블 1 & 3**")
-        for t in ["1-1", "1-2", "1-3", "1-4", "3-1", "3-2", "3-3", "3-4"]:
-            render_seat_button(t)
-    with s_col2:
-        st.write("**테이블 2 & 4**")
-        for t in ["2-1", "2-2", "2-3", "2-4", "4-1", "4-2", "4-3", "4-4"]:
-            render_seat_button(t)
+    st.caption("자유 자율학습 공간")
+    
+    st.write("**[테이블 1]**")
+    t1_c1, t1_c2 = st.columns(2)
+    with t1_c1: render_seat("1-1"); render_seat("1-3")
+    with t1_c2: render_seat("1-2"); render_seat("1-4")
+    
+    st.write("**[테이블 2]**")
+    t2_c1, t2_c2 = st.columns(2)
+    with t2_c1: render_seat("2-1"); render_seat("2-3")
+    with t2_c2: render_seat("2-2"); render_seat("2-4")
+    
+    st.write("**[테이블 3]**")
+    t3_c1, t3_c2 = st.columns(2)
+    with t3_c1: render_seat("3-1"); render_seat("3-3")
+    with t3_c2: render_seat("3-2"); render_seat("3-4")
+    
+    st.write("**[테이블 4]**")
+    t4_c1, t4_c2 = st.columns(2)
+    with t4_c1: render_seat("4-1"); render_seat("4-3")
+    with t4_c2: render_seat("4-2"); render_seat("4-4")
 
-with col_d:
-    st.markdown("#### 🟨 동측 블록 B (44~71)")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.caption("44~57번")
+# --- [우측 구역 B: 44~71번] ---
+with c_mid_2:
+    st.markdown("#### 🟨 동측 지정석 (44~71)")
+    m2_c1, m2_c2 = st.columns(2)
+    with m2_c1:
+        st.caption("44~57번 라인")
         for i in range(44, 58):
-            render_seat_button(str(i))
-    with c2:
-        st.caption("58~71번")
+            render_seat(str(i))
+    with m2_c2:
+        st.caption("58~71번 라인")
         for i in range(58, 72):
-            render_seat_button(str(i))
+            render_seat(str(i))
 
-# 3. 창가 구역 안내
+# 3. 하단 창가 구조
 st.markdown("---")
-st.info("🪟 **창문 구역 (하늘공원 방향)**")
+st.success("🪟 **창문 구역 (하늘공원 방향)** | 🏛️ 기둥 위치 고려됨")
