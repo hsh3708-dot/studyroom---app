@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 모바일 UI 커스텀 CSS
+# 모바일 UI 커스텀 CSS (글자 색상 검정색 & 두껍게 설정)
 st.markdown("""
 <style>
     .seat-card-used {
@@ -23,6 +23,8 @@ st.markdown("""
         padding: 8px;
         text-align: center;
         margin-bottom: 6px;
+        color: #000000 !important;
+        font-weight: bold !important;
     }
     .seat-card-empty {
         background-color: #E8F5E9;
@@ -31,9 +33,27 @@ st.markdown("""
         padding: 8px;
         text-align: center;
         margin-bottom: 6px;
+        color: #000000 !important;
+        font-weight: bold !important;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# 성별 좌석 이름 변환 함수
+def get_display_seat_name(seat_id):
+    if seat_id.startswith("스터디"):
+        return seat_id
+    
+    try:
+        num = int(seat_id)
+        # 남자 구역: 1~9, 24~43
+        if (1 <= num <= 9) or (24 <= num <= 43):
+            return f"남자{num}"
+        # 여자 구역: 10~23, 44~71
+        else:
+            return f"여자{num}"
+    except:
+        return f"{seat_id}번"
 
 # --- 구글 시트에서 실시간 좌석 상태 불러오기 함수 ---
 def fetch_realtime_seats():
@@ -58,7 +78,7 @@ st.session_state.seats = fetch_realtime_seats()
 
 # --- 화면 헤더 ---
 st.title("📚 2026학년도 하계 방학 좌석 신청")
-st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 좌석을 선택하고 입/퇴실 여부를 등록하세요.</p>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 아래 배치도에서 좌석을 클릭하세요.</p>", unsafe_allow_html=True)
 
 # --- 상단: 입/퇴실 처리 키오스크 폼 ---
 st.markdown("---")
@@ -78,11 +98,11 @@ with st.form("check_form", clear_on_submit=False):
     with col2:
         seat_options = []
         for seat_id, info in st.session_state.seats.items():
-            display_name = f"{seat_id}번" if not seat_id.startswith("스터디") else seat_id
+            disp_name = get_display_seat_name(seat_id)
             if info["status"] == "빈자리":
-                seat_options.append(f"{seat_id} (🟢 선택 가능)")
+                seat_options.append(f"{seat_id} [{disp_name}] (🟢 선택 가능)")
             else:
-                seat_options.append(f"{seat_id} (🔴 {info['user']} 사용 중)")
+                seat_options.append(f"{seat_id} [{disp_name}] (🔴 {info['user']} 사용 중)")
                 
         selected_option = st.selectbox("좌석 선택", seat_options)
         selected_seat_id = selected_option.split(" ")[0]
@@ -101,11 +121,12 @@ with st.form("check_form", clear_on_submit=False):
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             current_seat_info = st.session_state.seats[selected_seat_id]
             status_text = "입실" if "입실" in action else "퇴실"
+            disp_name = get_display_seat_name(selected_seat_id)
             
             # --- 1. 입실 처리 로직 ---
             if status_text == "입실":
                 if current_seat_info["status"] == "사용중":
-                    st.error(f"❌ {selected_seat_id}번 좌석은 이미 '{current_seat_info['user']}' 학생이 사용 중입니다!")
+                    st.error(f"❌ {disp_name} 좌석은 이미 '{current_seat_info['user']}' 학생이 사용 중입니다!")
                 else:
                     try:
                         payload = {
@@ -118,16 +139,16 @@ with st.form("check_form", clear_on_submit=False):
                     except Exception as e:
                         pass
                         
-                    st.success(f"🎉 **{input_user}**님, **{selected_seat_id}**번 좌석 입실 완료! ({now_str})")
+                    st.success(f"🎉 **{input_user}**님, **{disp_name}** 좌석 입실 완료! ({now_str})")
                     st.rerun()
 
             # --- 2. 퇴실 처리 로직 ---
             elif status_text == "퇴실":
                 if current_seat_info["status"] == "빈자리":
-                    st.warning(f"⚠️ {selected_seat_id}번 좌석은 이미 빈자리입니다.")
+                    st.warning(f"⚠️ {disp_name} 좌석은 이미 빈자리입니다.")
                 
                 elif current_seat_info["user"].strip() != input_user:
-                    st.error(f"❌ 퇴실 실패: {selected_seat_id}번 좌석은 현재 '**{current_seat_info['user']}**' 학생이 사용 중입니다. 본인이 사용 중인 좌석만 퇴실할 수 있습니다!")
+                    st.error(f"❌ 퇴실 실패: {disp_name} 좌석은 현재 '**{current_seat_info['user']}**' 학생이 사용 중입니다. 본인이 사용 중인 좌석만 퇴실할 수 있습니다!")
                 
                 else:
                     try:
@@ -141,7 +162,7 @@ with st.form("check_form", clear_on_submit=False):
                     except Exception as e:
                         pass
                         
-                    st.info(f"🚪 **{selected_seat_id}**번 좌석 퇴실 처리되었습니다.")
+                    st.info(f"🚪 **{disp_name}** 좌석 퇴실 처리되었습니다.")
                     st.rerun()
 
 # --- 하단: 실시간 모바일 최적화 좌석 현황판 ---
@@ -149,7 +170,7 @@ st.markdown("---")
 st.subheader("🖥️ 실시간 좌석 현황판")
 st.caption("🟢 선택 가능 (빈자리) | 🔴 선택 불가 (사용 중)")
 
-# 1. 정독실 구역 (1~71번) - 특수 물결표(∼)로 취소선 현상 완전 제거!
+# 1. 정독실 구역 (1~71번)
 st.markdown("### 📖 정독석 구역 (1∼9, 24∼43 = 남자 / 10∼23, 44∼71 = 여자)")
 
 NUM_COLS = 5
@@ -159,12 +180,13 @@ grid_cols = st.columns(NUM_COLS)
 for idx, seat_key in enumerate(jeongdok_list):
     seat_info = st.session_state.seats[seat_key]
     col_idx = idx // 15 if idx // 15 < NUM_COLS else NUM_COLS - 1
+    disp_name = get_display_seat_name(seat_key)
     
     with grid_cols[col_idx]:
         if seat_info["status"] == "사용중":
-            st.markdown(f"<div class='seat-card-used'><b>{seat_key}번</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='seat-card-used'><b>{disp_name}</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='seat-card-empty'><b>{seat_key}번</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='seat-card-empty'><b>{disp_name}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
 
 # 2. 스터디 테이블 구역 (1~16번)
 st.markdown("---")
