@@ -25,7 +25,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📚 2026학년도 자기주도학습실 실시간 좌석 현황")
-st.caption("실제 배치도와 100% 동일한 좌석 레이아웃입니다. 좌석을 직접 클릭해 입/퇴실을 진행하세요.")
+st.caption("좌석 배치도를 참고하여, 좌석을 직접 클릭한 후 입/퇴실을 꼭 진행하세요.")
 
 # --- 데이터 초기화 ---
 if 'seats' not in st.session_state:
@@ -58,7 +58,7 @@ if st.session_state.selected_seat:
     with st.form("check_in_out_form"):
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
-            student_name = st.text_input("학번 및 이름 입력", value=s_info['user'] if s_info['status'] == "사용중" else "", placeholder="예: 20101 홍길동")
+            student_name = st.text_input("학번 및 이름 입력", value=s_info['user'] if s_info['status'] == "사용중" else "", placeholder="예: 10224 하선훈")
         with col2:
             in_btn = st.form_submit_button("🟢 입실하기", use_container_width=True)
         with col3:
