@@ -24,7 +24,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("📚 2026학년도 자기주도학습실 실시간 좌석 현황")
+st.title("📚 2026학년도 하계 방학 좌석 신청")
 st.caption("좌석 배치도를 참고하여, 좌석을 직접 클릭한 후 입/퇴실을 꼭 진행하세요.")
 
 # --- 데이터 초기화 ---
