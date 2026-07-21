@@ -151,7 +151,7 @@ st.subheader("🖥️ 실시간 좌석 현황판")
 st.caption("🟢 선택 가능 (빈자리) | 🔴 선택 불가 (사용 중)")
 
 # 1. 정독석 구역
-st.markdown("### 정독석 구역 (1~9,24~43 = 남자, 10~23,44~71 = 여자))")
+st.caption("### 정독석 구역 (1~9,24~43 = 남자, 10~23,44~71 = 여자))")
 
 NUM_COLS = 5
 jeongdok_list = [str(i) for i in range(1, 72)]
