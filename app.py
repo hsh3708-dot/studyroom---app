@@ -164,7 +164,7 @@ with c_study:
 
 # --- [여학생 외부 구역: 44~71번] ---
 with c_mid_2:
-    st.markdown("#### 🟨 여학생 외부 구역")
+    st.markdown("#### 🟨 여학생 외부 구역 (44~71)")
     m2_c1, m2_c2 = st.columns(2)
     with m2_c1:
         st.caption("44~57번 라인")
