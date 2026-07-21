@@ -46,10 +46,8 @@ def get_display_seat_name(seat_id):
     
     try:
         num = int(seat_id)
-        # 남자 구역: 1~9, 24~43
         if (1 <= num <= 9) or (24 <= num <= 43):
             return f"남자{num}"
-        # 여자 구역: 10~23, 44~71
         else:
             return f"여자{num}"
     except:
@@ -78,7 +76,7 @@ st.session_state.seats = fetch_realtime_seats()
 
 # --- 화면 헤더 ---
 st.title("📚 2026학년도 하계 방학 좌석 신청")
-st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 아래 배치도에서 좌석을 클릭하세요.</p>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 배치도를 보고 좌석을 선택하고, 입/퇴실을 선택하세요.</p>", unsafe_allow_html=True)
 
 # --- 상단: 입/퇴실 처리 키오스크 폼 ---
 st.markdown("---")
@@ -89,11 +87,25 @@ with col_header_2:
     if st.button("🔄 실시간 현황 새로고침", use_container_width=True):
         st.rerun()
 
+# 🔔 세션 알림 메시지 출력 (처리 직후 화면에 확실하게 고정 노출)
+if 'msg_type' in st.session_state and 'msg_text' in st.session_state:
+    if st.session_state.msg_type == "success":
+        st.success(st.session_state.msg_text)
+    elif st.session_state.msg_type == "error":
+        st.error(st.session_state.msg_text)
+    elif st.session_state.msg_type == "warning":
+        st.warning(st.session_state.msg_text)
+    elif st.session_state.msg_type == "info":
+        st.info(st.session_state.msg_text)
+    # 1회성 표시 후 메시지 삭제
+    del st.session_state.msg_type
+    del st.session_state.msg_text
+
 with st.form("check_form", clear_on_submit=False):
     col1, col2, col3 = st.columns([2, 1.5, 1])
     
     with col1:
-        student_name = st.text_input("학번 및 이름 입력", placeholder="예: 10224 하선훈")
+        student_name = st.text_input("학번 및 이름 입력(띄어쓰기 없이)", placeholder="예: 10224하선훈")
     
     with col2:
         seat_options = []
@@ -116,7 +128,9 @@ with st.form("check_form", clear_on_submit=False):
         input_user = student_name.strip()
         
         if not input_user:
-            st.error("⚠️ 학번과 이름을 정확히 입력해주세요!")
+            st.session_state.msg_type = "error"
+            st.session_state.msg_text = "⚠️ 학번과 이름을 정확히 입력해주세요!"
+            st.rerun()
         else:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             current_seat_info = st.session_state.seats[selected_seat_id]
@@ -126,7 +140,9 @@ with st.form("check_form", clear_on_submit=False):
             # --- 1. 입실 처리 로직 ---
             if status_text == "입실":
                 if current_seat_info["status"] == "사용중":
-                    st.error(f"❌ {disp_name} 좌석은 이미 '{current_seat_info['user']}' 학생이 사용 중입니다!")
+                    st.session_state.msg_type = "error"
+                    st.session_state.msg_text = f"❌ [{disp_name}] 좌석은 이미 '{current_seat_info['user']}' 학생이 사용 중입니다!"
+                    st.rerun()
                 else:
                     try:
                         payload = {
@@ -139,16 +155,21 @@ with st.form("check_form", clear_on_submit=False):
                     except Exception as e:
                         pass
                         
-                    st.success(f"🎉 **{input_user}**님, **{disp_name}** 좌석 입실 완료! ({now_str})")
+                    st.session_state.msg_type = "success"
+                    st.session_state.msg_text = f"🎉 **{input_user}**님, **[{disp_name}]** 좌석 입실 처리되었습니다! (입실시각: {now_str})"
                     st.rerun()
 
             # --- 2. 퇴실 처리 로직 ---
             elif status_text == "퇴실":
                 if current_seat_info["status"] == "빈자리":
-                    st.warning(f"⚠️ {disp_name} 좌석은 이미 빈자리입니다.")
+                    st.session_state.msg_type = "warning"
+                    st.session_state.msg_text = f"⚠️ [{disp_name}] 좌석은 이미 빈자리입니다."
+                    st.rerun()
                 
                 elif current_seat_info["user"].strip() != input_user:
-                    st.error(f"❌ 퇴실 실패: {disp_name} 좌석은 현재 '**{current_seat_info['user']}**' 학생이 사용 중입니다. 본인이 사용 중인 좌석만 퇴실할 수 있습니다!")
+                    st.session_state.msg_type = "error"
+                    st.session_state.msg_text = f"❌ 퇴실 실패: [{disp_name}] 좌석은 현재 '**{current_seat_info['user']}**' 학생이 사용 중입니다. 본인이 사용 중인 좌석만 퇴실할 수 있습니다!"
+                    st.rerun()
                 
                 else:
                     try:
@@ -162,7 +183,8 @@ with st.form("check_form", clear_on_submit=False):
                     except Exception as e:
                         pass
                         
-                    st.info(f"🚪 **{disp_name}** 좌석 퇴실 처리되었습니다.")
+                    st.session_state.msg_type = "info"
+                    st.session_state.msg_text = f"🚪 **{input_user}**님, **[{disp_name}]** 좌석 퇴실 처리되었습니다. 이용해 주셔서 감사합니다!"
                     st.rerun()
 
 # --- 하단: 실시간 모바일 최적화 좌석 현황판 ---
@@ -190,9 +212,9 @@ for idx, seat_key in enumerate(jeongdok_list):
 
 # 2. 스터디 테이블 구역 (1~16번)
 st.markdown("---")
-st.markdown("### ✏️ 스터디 테이블 구역 (16석)")
+st.markdown("### ✏️ 자유석 구역 (16석)")
 
-study_list = [f"스터디-{i}" for i in range(1, 17)]
+study_list = [f"자유석-{i}" for i in range(1, 17)]
 study_cols = st.columns(4)
 
 for idx, seat_key in enumerate(study_list):
