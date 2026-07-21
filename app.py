@@ -58,7 +58,7 @@ st.session_state.seats = fetch_realtime_seats()
 
 # --- 화면 헤더 ---
 st.title("📚 2026학년도 하계 방학 좌석 신청")
-st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 아래 배치도에서 좌석을 클릭하세요.</p>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 좌석을 선택하고 입/퇴실 여부를 등록하세요.</p>", unsafe_allow_html=True)
 
 # --- 상단: 입/퇴실 처리 키오스크 폼 ---
 st.markdown("---")
