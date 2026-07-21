@@ -13,15 +13,36 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- [핵심] 구글 시트에서 실시간 좌석 상태 불러오기 함수 ---
+# 모바일 UI 커스텀 CSS (모바일 화면 레이아웃 최적화)
+st.markdown("""
+<style>
+    /* 카드형 좌석 디자인 */
+    .seat-card-used {
+        background-color: #FFEEDD;
+        border: 2px solid #FF5555;
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+        margin-bottom: 6px;
+    }
+    .seat-card-empty {
+        background-color: #E8F5E9;
+        border: 2px solid #4CAF50;
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+        margin-bottom: 6px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 구글 시트에서 실시간 좌석 상태 불러오기 함수 ---
 def fetch_realtime_seats():
-    # 기본 87개 좌석 데이터 구조 세팅
     jeongdok = [str(i) for i in range(1, 72)]
     study = [f"스터디-{i}" for i in range(1, 17)]
     seats_data = {s: {"status": "빈자리", "user": "", "time": ""} for s in (jeongdok + study)}
     
     try:
-        # 구글 앱스 스크립트(GET)를 통해 구글 시트의 최신 현황 수신
         response = requests.get(WEB_APP_URL, timeout=5)
         if response.status_code == 200:
             db_seats = response.json()
@@ -29,11 +50,11 @@ def fetch_realtime_seats():
                 if seat_id in seats_data:
                     seats_data[seat_id] = info
     except Exception as e:
-        pass  # 통신 에러 발생 시 기본값 유지
+        pass
         
     return seats_data
 
-# 페이지 진입 시 항상 구글 시트의 최신 데이터로 실시간 상태 업데이트
+# 항상 접속 시 최신 DB 상태 불러오기
 st.session_state.seats = fetch_realtime_seats()
 
 # --- 화면 헤더 ---
@@ -46,7 +67,6 @@ col_header_1, col_header_2 = st.columns([4, 1])
 with col_header_1:
     st.subheader("📱 입실 / 퇴실 처리하기")
 with col_header_2:
-    # 실시간 현황 수동 수신 버튼
     if st.button("🔄 실시간 현황 새로고침", use_container_width=True):
         st.rerun()
 
@@ -85,7 +105,6 @@ with st.form("check_form", clear_on_submit=False):
                 if current_seat_info["status"] == "사용중":
                     st.error(f"❌ {selected_seat_id}번 좌석은 이미 '{current_seat_info['user']}' 학생이 사용 중입니다!")
                 else:
-                    # 구글 스프레드시트로 기록 전송 (POST)
                     try:
                         payload = {
                             "timestamp": now_str,
@@ -104,7 +123,6 @@ with st.form("check_form", clear_on_submit=False):
                 if current_seat_info["status"] == "빈자리":
                     st.warning(f"⚠️ {selected_seat_id}번 좌석은 이미 빈자리입니다.")
                 else:
-                    # 구글 스프레드시트로 기록 전송 (POST)
                     try:
                         payload = {
                             "timestamp": now_str,
@@ -116,35 +134,48 @@ with st.form("check_form", clear_on_submit=False):
                     except Exception as e:
                         pass
                         
-                    st.info(f"🚪 **{selected_seat_id}**번 좌석 퇴실 처리되었습니다. 이용해 주셔서 감사합니다.")
+                    st.info(f"🚪 **{selected_seat_id}**번 좌석 퇴실 처리되었습니다.")
                     st.rerun()
 
-# --- 하단: 실시간 스터디카페 좌석 현황판 ---
+# --- 하단: 실시간 모바일 최적화 좌석 현황판 ---
 st.markdown("---")
-st.subheader("🖥️ 실시간 좌석 배치도")
+st.subheader("🖥️ 실시간 좌석 현황판")
 st.caption("🟢 선택 가능 (빈자리) | 🔴 선택 불가 (사용 중)")
 
-# 1. 정독실 구역 (1~71번)
+# 1. 정독실 구역 (1~71번) - 모바일 세로 1, 2, 3, 4 순서 유지 처리
 st.markdown("### 📖 정독실 구역 (71석)")
-cols_jeongdok = st.columns(10)
-for i in range(1, 72):
-    seat_key = str(i)
+
+NUM_COLS = 5  # 화면 표시 열 개수
+jeongdok_list = [str(i) for i in range(1, 72)]
+grid_cols = st.columns(NUM_COLS)
+
+for idx, seat_key in enumerate(jeongdok_list):
     seat_info = st.session_state.seats[seat_key]
-    col = cols_jeongdok[(i - 1) % 10]
+    # 모바일/PC 모두에서 세로 방향 1, 2, 3, 4 순서로 들어가도록 인덱스 계산
+    col_idx = idx // 15 if idx // 15 < NUM_COLS else NUM_COLS - 1
     
-    if seat_info["status"] == "사용중":
-        col.error(f"**석 {seat_key}**\n\n🔴 사용중\n\n({seat_info['user']})")
-    else:
-        col.success(f"**석 {seat_key}**\n\n🟢 가능\n\n(빈자리)")
+    with grid_cols[col_idx]:
+        if seat_info["status"] == "사용중":
+            st.markdown(f"<div class='seat-card-used'><b>석 {seat_key}</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div class='seat-card-empty'><b>석 {seat_key}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
 
 # 2. 스터디 테이블 구역 (1~16번)
 st.markdown("---")
 st.markdown("### ✏️ 스터디 테이블 구역 (16석)")
-cols_study = st.columns(8)
-for i in range(1, 17):
-    seat_key = f"스터디-{i}"
+
+study_list = [f"스터디-{i}" for i in range(1, 17)]
+study_cols = st.columns(4)
+
+for idx, seat_key in enumerate(study_list):
     seat_info = st.session_state.seats[seat_key]
-    col = cols_study[(i - 1) % 8]
+    col_idx = idx // 4
+    
+    with study_cols[col_idx]:
+        if seat_info["status"] == "사용중":
+            st.markdown(f"<div class='seat-card-used'><b>{seat_key}</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div class='seat-card-empty'><b>{seat_key}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
     
     if seat_info["status"] == "사용중":
         col.error(f"**{i}**\n\n🔴 사용중\n\n({seat_info['user']})")
