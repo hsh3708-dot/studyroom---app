@@ -184,7 +184,7 @@ with st.form("check_form", clear_on_submit=False):
                         pass
                         
                     st.session_state.msg_type = "info"
-                    st.session_state.msg_text = f"🚪 **{input_user}**님, **[{disp_name}]** 좌석 퇴실 처리되었습니다. 이용해 주셔서 감사합니다!"
+                    st.session_state.msg_text = f"🚪 **{input_user}**님, **[{disp_name}]** 좌석 퇴실 처리되었습니다!"
                     st.rerun()
 
 # --- 하단: 실시간 모바일 최적화 좌석 현황판 ---
