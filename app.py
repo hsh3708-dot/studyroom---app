@@ -32,6 +32,16 @@ st.markdown("""
         text-align: center;
         margin-bottom: 6px;
     }
+    .gender-info-box {
+        background-color: #F0F4F8;
+        border-left: 5px solid #0066CC;
+        padding: 10px 15px;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #333333;
+        margin-bottom: 15px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,8 +67,15 @@ def fetch_realtime_seats():
 st.session_state.seats = fetch_realtime_seats()
 
 # --- 화면 헤더 ---
-st.title("📚 2026학년도 자기주도학습실 좌석 현황판")
-st.markdown("입구에서 QR 코드를 스캔한 후 **본인 학번/이름**을 입력하고 **원하는 좌석**을 선택해 입실/퇴실해 주세요.")
+st.title("📚 2026학년도 하계 방학 좌석 신청")
+st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 아래 배치도에서 좌석을 클릭하세요.</p>", unsafe_allow_html=True)
+
+# 📢 성별 구역 안내 상자 추가
+st.markdown("""
+<div class='gender-info-box'>
+    📌 정독석 구역 안내: 👦 남자 (1~9번, 24~43번) | 👧 여자 (10~23번, 44~71번)
+</div>
+""", unsafe_allow_html=True)
 
 # --- 상단: 입/퇴실 처리 키오스크 폼 ---
 st.markdown("---")
@@ -73,7 +90,7 @@ with st.form("check_form", clear_on_submit=False):
     col1, col2, col3 = st.columns([2, 1.5, 1])
     
     with col1:
-        student_name = st.text_input("학번 및 이름 입력(띄어쓰기 없이)", placeholder="예: 10224하선훈")
+        student_name = st.text_input("학번 및 이름 입력", placeholder="예: 10224 하선훈")
     
     with col2:
         seat_options = []
@@ -120,16 +137,14 @@ with st.form("check_form", clear_on_submit=False):
                     st.success(f"🎉 **{input_user}**님, **{selected_seat_id}**번 좌석 입실 완료! ({now_str})")
                     st.rerun()
 
-            # --- 2. 퇴실 처리 로직 (이름 일치 검증 추가!) ---
+            # --- 2. 퇴실 처리 로직 ---
             elif status_text == "퇴실":
                 if current_seat_info["status"] == "빈자리":
                     st.warning(f"⚠️ {selected_seat_id}번 좌석은 이미 빈자리입니다.")
                 
-                # 🛑 본인 이름 검증: 현재 이용 중인 이름과 입력한 이름이 다른 경우
                 elif current_seat_info["user"].strip() != input_user:
                     st.error(f"❌ 퇴실 실패: {selected_seat_id}번 좌석은 현재 '**{current_seat_info['user']}**' 학생이 사용 중입니다. 본인이 사용 중인 좌석만 퇴실할 수 있습니다!")
                 
-                # ✅ 이름이 일치하는 경우만 정상 퇴실 처리
                 else:
                     try:
                         payload = {
@@ -150,8 +165,8 @@ st.markdown("---")
 st.subheader("🖥️ 실시간 좌석 현황판")
 st.caption("🟢 선택 가능 (빈자리) | 🔴 선택 불가 (사용 중)")
 
-# 1. 정독석 구역
-st.caption("### 정독석 구역 (1~9,24~43 = 남자, 10~23,44~71 = 여자))")
+# 1. 정독실 구역 (1~71번)
+st.markdown("### 📖 정독석 구역 (1~9, 24~43 = 남자 / 10~23, 44~71 = 여자)")
 
 NUM_COLS = 5
 jeongdok_list = [str(i) for i in range(1, 72)]
