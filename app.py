@@ -13,10 +13,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# 모바일 UI 커스텀 CSS (모바일 화면 레이아웃 최적화)
+# 모바일 UI 커스텀 CSS
 st.markdown("""
 <style>
-    /* 카드형 좌석 디자인 */
     .seat-card-used {
         background-color: #FFEEDD;
         border: 2px solid #FF5555;
@@ -93,14 +92,16 @@ with st.form("check_form", clear_on_submit=False):
     submit_btn = st.form_submit_button("확인 및 등록하기", use_container_width=True)
 
     if submit_btn:
-        if not student_name.strip():
+        input_user = student_name.strip()
+        
+        if not input_user:
             st.error("⚠️ 학번과 이름을 정확히 입력해주세요!")
         else:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             current_seat_info = st.session_state.seats[selected_seat_id]
-            
             status_text = "입실" if "입실" in action else "퇴실"
             
+            # --- 1. 입실 처리 로직 ---
             if status_text == "입실":
                 if current_seat_info["status"] == "사용중":
                     st.error(f"❌ {selected_seat_id}번 좌석은 이미 '{current_seat_info['user']}' 학생이 사용 중입니다!")
@@ -108,7 +109,7 @@ with st.form("check_form", clear_on_submit=False):
                     try:
                         payload = {
                             "timestamp": now_str,
-                            "student_id": student_name,
+                            "student_id": input_user,
                             "seat_no": selected_seat_id,
                             "status": status_text
                         }
@@ -116,17 +117,24 @@ with st.form("check_form", clear_on_submit=False):
                     except Exception as e:
                         pass
                         
-                    st.success(f"🎉 **{student_name}**님, **{selected_seat_id}**번 좌석 입실 완료! ({now_str})")
+                    st.success(f"🎉 **{input_user}**님, **{selected_seat_id}**번 좌석 입실 완료! ({now_str})")
                     st.rerun()
 
+            # --- 2. 퇴실 처리 로직 (이름 일치 검증 추가!) ---
             elif status_text == "퇴실":
                 if current_seat_info["status"] == "빈자리":
                     st.warning(f"⚠️ {selected_seat_id}번 좌석은 이미 빈자리입니다.")
+                
+                # 🛑 본인 이름 검증: 현재 이용 중인 이름과 입력한 이름이 다른 경우
+                elif current_seat_info["user"].strip() != input_user:
+                    st.error(f"❌ 퇴실 실패: {selected_seat_id}번 좌석은 현재 '**{current_seat_info['user']}**' 학생이 사용 중입니다. 본인이 사용 중인 좌석만 퇴실할 수 있습니다!")
+                
+                # ✅ 이름이 일치하는 경우만 정상 퇴실 처리
                 else:
                     try:
                         payload = {
                             "timestamp": now_str,
-                            "student_id": student_name,
+                            "student_id": input_user,
                             "seat_no": selected_seat_id,
                             "status": status_text
                         }
@@ -142,16 +150,15 @@ st.markdown("---")
 st.subheader("🖥️ 실시간 좌석 현황판")
 st.caption("🟢 선택 가능 (빈자리) | 🔴 선택 불가 (사용 중)")
 
-# 1. 정독실 구역 (1~71번) - 모바일 세로 1, 2, 3, 4 순서 유지 처리
+# 1. 정독실 구역 (1~71번)
 st.markdown("### 📖 정독실 구역 (71석)")
 
-NUM_COLS = 5  # 화면 표시 열 개수
+NUM_COLS = 5
 jeongdok_list = [str(i) for i in range(1, 72)]
 grid_cols = st.columns(NUM_COLS)
 
 for idx, seat_key in enumerate(jeongdok_list):
     seat_info = st.session_state.seats[seat_key]
-    # 모바일/PC 모두에서 세로 방향 1, 2, 3, 4 순서로 들어가도록 인덱스 계산
     col_idx = idx // 15 if idx // 15 < NUM_COLS else NUM_COLS - 1
     
     with grid_cols[col_idx]:
