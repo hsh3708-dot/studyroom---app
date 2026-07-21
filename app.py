@@ -73,7 +73,7 @@ with st.form("check_form", clear_on_submit=False):
     col1, col2, col3 = st.columns([2, 1.5, 1])
     
     with col1:
-        student_name = st.text_input("학번 및 이름 입력", placeholder="예: 20101 홍길동")
+        student_name = st.text_input("학번 및 이름 입력(띄어쓰기 없이)", placeholder="예: 10224하선훈")
     
     with col2:
         seat_options = []
