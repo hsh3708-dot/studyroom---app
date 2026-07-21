@@ -41,8 +41,8 @@ st.markdown("""
 
 # 성별 좌석 이름 변환 함수
 def get_display_seat_name(seat_id):
-    if seat_id.startswith("스터디"):
-        return seat_id
+    if "-" in seat_id:  # 자유석 (1-1 ~ 4-4)
+        return f"자유석 {seat_id}"
     
     try:
         num = int(seat_id)
@@ -56,7 +56,8 @@ def get_display_seat_name(seat_id):
 # --- 구글 시트에서 실시간 좌석 상태 불러오기 함수 ---
 def fetch_realtime_seats():
     jeongdok = [str(i) for i in range(1, 72)]
-    study = [f"스터디-{i}" for i in range(1, 17)]
+    # 자유석 1-1 ~ 4-4 (총 16석) 키값 일치시킴
+    study = [f"{t}-{i}" for t in range(1, 5) for i in range(1, 5)]
     seats_data = {s: {"status": "빈자리", "user": "", "time": ""} for s in (jeongdok + study)}
     
     try:
@@ -76,7 +77,7 @@ st.session_state.seats = fetch_realtime_seats()
 
 # --- 화면 헤더 ---
 st.title("📚 2026학년도 하계 방학 좌석 신청")
-st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 배치도를 보고 좌석을 선택하고, 입/퇴실을 선택하세요.</p>", unsafe_allow_html=True)
+st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 아래 배치도에서 좌석을 클릭하세요.</p>", unsafe_allow_html=True)
 
 # --- 상단: 입/퇴실 처리 키오스크 폼 ---
 st.markdown("---")
@@ -87,7 +88,7 @@ with col_header_2:
     if st.button("🔄 실시간 현황 새로고침", use_container_width=True):
         st.rerun()
 
-# 🔔 세션 알림 메시지 출력 (처리 직후 화면에 확실하게 고정 노출)
+# 🔔 세션 알림 메시지 출력
 if 'msg_type' in st.session_state and 'msg_text' in st.session_state:
     if st.session_state.msg_type == "success":
         st.success(st.session_state.msg_text)
@@ -97,7 +98,6 @@ if 'msg_type' in st.session_state and 'msg_text' in st.session_state:
         st.warning(st.session_state.msg_text)
     elif st.session_state.msg_type == "info":
         st.info(st.session_state.msg_text)
-    # 1회성 표시 후 메시지 삭제
     del st.session_state.msg_type
     del st.session_state.msg_text
 
@@ -105,7 +105,7 @@ with st.form("check_form", clear_on_submit=False):
     col1, col2, col3 = st.columns([2, 1.5, 1])
     
     with col1:
-        student_name = st.text_input("학번 및 이름 입력(띄어쓰기 없이)", placeholder="예: 10224하선훈")
+        student_name = st.text_input("학번 및 이름 입력", placeholder="예: 10224 하선훈")
     
     with col2:
         seat_options = []
@@ -133,7 +133,7 @@ with st.form("check_form", clear_on_submit=False):
             st.rerun()
         else:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            current_seat_info = st.session_state.seats[selected_seat_id]
+            current_seat_info = st.session_state.seats.get(selected_seat_id, {"status": "빈자리", "user": ""})
             status_text = "입실" if "입실" in action else "퇴실"
             disp_name = get_display_seat_name(selected_seat_id)
             
@@ -184,7 +184,7 @@ with st.form("check_form", clear_on_submit=False):
                         pass
                         
                     st.session_state.msg_type = "info"
-                    st.session_state.msg_text = f"🚪 **{input_user}**님, **[{disp_name}]** 좌석 퇴실 처리되었습니다!"
+                    st.session_state.msg_text = f"🚪 **{input_user}**님, **[{disp_name}]** 좌석 퇴실 처리되었습니다. 이용해 주셔서 감사합니다!"
                     st.rerun()
 
 # --- 하단: 실시간 모바일 최적화 좌석 현황판 ---
@@ -200,7 +200,7 @@ jeongdok_list = [str(i) for i in range(1, 72)]
 grid_cols = st.columns(NUM_COLS)
 
 for idx, seat_key in enumerate(jeongdok_list):
-    seat_info = st.session_state.seats[seat_key]
+    seat_info = st.session_state.seats.get(seat_key, {"status": "빈자리", "user": ""})
     col_idx = idx // 15 if idx // 15 < NUM_COLS else NUM_COLS - 1
     disp_name = get_display_seat_name(seat_key)
     
@@ -210,19 +210,20 @@ for idx, seat_key in enumerate(jeongdok_list):
         else:
             st.markdown(f"<div class='seat-card-empty'><b>{disp_name}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
 
-# 2. 스터디 테이블 구역 (1~16번)
+# 2. 자유석 구역 (1-1 ~ 4-4, 총 16석)
 st.markdown("---")
 st.markdown("### ✏️ 자유석 구역 (16석)")
 
-study_list = [f"자유석-{i}" for i in range(1, 17)]
+study_list = [f"{t}-{i}" for t in range(1, 5) for i in range(1, 5)]
 study_cols = st.columns(4)
 
 for idx, seat_key in enumerate(study_list):
-    seat_info = st.session_state.seats[seat_key]
+    seat_info = st.session_state.seats.get(seat_key, {"status": "빈자리", "user": ""})
     col_idx = idx // 4
+    disp_name = get_display_seat_name(seat_key)
     
     with study_cols[col_idx]:
         if seat_info["status"] == "사용중":
-            st.markdown(f"<div class='seat-card-used'><b>{seat_key}</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='seat-card-used'><b>{disp_name}</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='seat-card-empty'><b>{seat_key}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='seat-card-empty'><b>{disp_name}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
