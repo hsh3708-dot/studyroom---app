@@ -32,16 +32,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 6px;
     }
-    .gender-info-box {
-        background-color: #F0F4F8;
-        border-left: 5px solid #0066CC;
-        padding: 10px 15px;
-        border-radius: 4px;
-        font-size: 16px;
-        font-weight: bold;
-        color: #333333;
-        margin-bottom: 15px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,13 +60,6 @@ st.session_state.seats = fetch_realtime_seats()
 st.title("📚 2026학년도 하계 방학 좌석 신청")
 st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>먼저 본인의 학번과 이름을 입력한 후, 아래 배치도에서 좌석을 클릭하세요.</p>", unsafe_allow_html=True)
 
-# 📢 성별 구역 안내 상자 추가
-st.markdown("""
-<div class='gender-info-box'>
-    📌 정독석 구역 안내: 👦 남자 (1~9번, 24~43번) | 👧 여자 (10~23번, 44~71번)
-</div>
-""", unsafe_allow_html=True)
-
 # --- 상단: 입/퇴실 처리 키오스크 폼 ---
 st.markdown("---")
 col_header_1, col_header_2 = st.columns([4, 1])
@@ -95,6 +78,7 @@ with st.form("check_form", clear_on_submit=False):
     with col2:
         seat_options = []
         for seat_id, info in st.session_state.seats.items():
+            display_name = f"{seat_id}번" if not seat_id.startswith("스터디") else seat_id
             if info["status"] == "빈자리":
                 seat_options.append(f"{seat_id} (🟢 선택 가능)")
             else:
@@ -165,7 +149,7 @@ st.markdown("---")
 st.subheader("🖥️ 실시간 좌석 현황판")
 st.caption("🟢 선택 가능 (빈자리) | 🔴 선택 불가 (사용 중)")
 
-# 1. 정독실 구역 (1~71번)
+# 1. 정독실 구역 (1~71번) - 정확한 제목 및 번호 표기 반영
 st.markdown("### 📖 정독석 구역 (1~9, 24~43 = 남자 / 10~23, 44~71 = 여자)")
 
 NUM_COLS = 5
@@ -178,9 +162,9 @@ for idx, seat_key in enumerate(jeongdok_list):
     
     with grid_cols[col_idx]:
         if seat_info["status"] == "사용중":
-            st.markdown(f"<div class='seat-card-used'><b>석 {seat_key}</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='seat-card-used'><b>{seat_key}번</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='seat-card-empty'><b>석 {seat_key}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='seat-card-empty'><b>{seat_key}번</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
 
 # 2. 스터디 테이블 구역 (1~16번)
 st.markdown("---")
