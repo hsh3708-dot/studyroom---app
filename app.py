@@ -25,7 +25,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📚 2026학년도 하계 방학 좌석 신청")
-st.caption("좌석 배치도를 참고하여, 좌석을 직접 클릭한 후 입/퇴실을 꼭 진행하세요.")
+# 기존 st.caption 대신 아래 코드로 수정!
+st.markdown("<p style='font-size: 20px; font-weight: bold; color: #555555;'>좌석 배치도를 참고하여, 좌석을 직접 클릭한 후 입/퇴실을 꼭 진행하세요.</p>", unsafe_allow_html=True)
 
 # --- 데이터 초기화 ---
 if 'seats' not in st.session_state:
