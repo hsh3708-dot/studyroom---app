@@ -113,18 +113,18 @@ c_left, c_mid_1, c_study, c_mid_2 = st.columns([2, 2, 3, 3])
 
 # --- [좌측 구역: 1~23번 (남/여 구역)] ---
 with c_left:
-    st.markdown("#### 🟦 서측 구역 (1~23)")
+    st.markdown("#### 🟦 남, 여 내부 구역 (1~23)")
     l_c1, l_c2 = st.columns(2)
     with l_c1:
-        st.caption("남학생")
+        st.caption("남학생 내부")
         for i in [1, 2, 3, 4, 5, 6, 7, 8, 9]:
             render_seat(str(i))
     with l_c2:
-        st.caption("여학생")
+        st.caption("여학생 내부")
         for i in [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]:
             render_seat(str(i))
 
-# --- [중앙 구역 A: 24~43번] ---
+# --- [남학생 외부 구역 A: 24~43번] ---
 with c_mid_1:
     st.markdown("#### 🟩 중앙 지정석 (24~43)")
     m1_c1, m1_c2 = st.columns(2)
@@ -162,7 +162,7 @@ with c_study:
     with t4_c1: render_seat("4-1"); render_seat("4-3")
     with t4_c2: render_seat("4-2"); render_seat("4-4")
 
-# --- [우측 구역 B: 44~71번] ---
+# --- [여학생 외부 구: 44~71번] ---
 with c_mid_2:
     st.markdown("#### 🟨 동측 지정석 (44~71)")
     m2_c1, m2_c2 = st.columns(2)
