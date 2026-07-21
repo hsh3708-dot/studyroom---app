@@ -176,8 +176,3 @@ for idx, seat_key in enumerate(study_list):
             st.markdown(f"<div class='seat-card-used'><b>{seat_key}</b><br>🔴 사용중<br>({seat_info['user']})</div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='seat-card-empty'><b>{seat_key}</b><br>🟢 가능<br>(빈자리)</div>", unsafe_allow_html=True)
-    
-    if seat_info["status"] == "사용중":
-        col.error(f"**{i}**\n\n🔴 사용중\n\n({seat_info['user']})")
-    else:
-        col.success(f"**{i}**\n\n🟢 가능\n\n(빈자리)")
