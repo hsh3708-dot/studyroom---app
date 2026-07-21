@@ -126,7 +126,7 @@ with c_left:
 
 # --- [남학생 외부 구역 A: 24~43번] ---
 with c_mid_1:
-    st.markdown("#### 🟩 중앙 지정석 (24~43)")
+    st.markdown("#### 🟩 남학생 외부 구역 (24~43)")
     m1_c1, m1_c2 = st.columns(2)
     with m1_c1:
         st.caption("24~33번 라인")
@@ -162,9 +162,9 @@ with c_study:
     with t4_c1: render_seat("4-1"); render_seat("4-3")
     with t4_c2: render_seat("4-2"); render_seat("4-4")
 
-# --- [여학생 외부 구: 44~71번] ---
+# --- [여학생 외부 구역: 44~71번] ---
 with c_mid_2:
-    st.markdown("#### 🟨 동측 지정석 (44~71)")
+    st.markdown("#### 🟨 동측 지정석 (여학생 외부 구역)")
     m2_c1, m2_c2 = st.columns(2)
     with m2_c1:
         st.caption("44~57번 라인")
